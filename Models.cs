@@ -18,5 +18,5 @@ public class AppSettings
     public double Left                   { get; set; } = 20;
     public double Top                    { get; set; } = 20;
     public bool   RunAtStartup           { get; set; } = false;
-    public int    RefreshIntervalMinutes { get; set; } = 5;
+    public int    RefreshIntervalMinutes { get; set; } = 1;
 }
