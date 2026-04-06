@@ -3,14 +3,17 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using WinForms = System.Windows.Forms;
+using Drawing  = System.Drawing;
 
 namespace ClaudeUsageOverlay;
 
 public partial class MainWindow : Window
 {
-    private readonly UsageService _svc      = new();
-    private readonly AppSettings  _settings = SettingsManager.Load();
-    private DispatcherTimer?      _timer;
+    private readonly UsageService    _svc      = new();
+    private readonly AppSettings     _settings = SettingsManager.Load();
+    private DispatcherTimer?         _timer;
+    private WinForms.NotifyIcon?     _tray;
 
     // Prebuilt context menu (built once; ContextMenu API requires no live tree)
     private readonly ContextMenu _menu;
@@ -43,11 +46,39 @@ public partial class MainWindow : Window
         _menu.Items.Add(menuExit);
 
         ApplySettings();
+        InitTray();
         Loaded  += async (_, _) => await StartAsync();
         Closing += OnClosing;
     }
 
-    // ── Apply saved settings ───────────────────────────────────────────────
+    // ── System tray icon ───────────────────────────────────────────
+    private void InitTray()
+    {
+        Drawing.Icon icon;
+        var stream = Application.GetResourceStream(
+            new Uri("pack://application:,,,/app.ico"))?.Stream;
+        icon = stream is not null
+            ? new Drawing.Icon(stream)
+            : Drawing.SystemIcons.Application;
+
+        var trayMenu = new WinForms.ContextMenuStrip();
+        trayMenu.Items.Add("🔄  Refresh",        null, (_, _) => { StatusLabel.Text = "Refreshing…"; _svc.Fetch(); });
+        trayMenu.Items.Add(new WinForms.ToolStripSeparator());
+        trayMenu.Items.Add("✕  Exit",            null, (_, _) => Application.Current.Shutdown());
+
+        _tray = new WinForms.NotifyIcon
+        {
+            Icon             = icon,
+            Text             = "Claude Usage Overlay",
+            Visible          = true,
+            ContextMenuStrip = trayMenu
+        };
+
+        // Double-click tray icon → bring overlay to front
+        _tray.DoubleClick += (_, _) => Dispatcher.Invoke(() => { Show(); Activate(); });
+    }
+
+    // ── Apply saved settings ─────────────────────────────────────────
     private void ApplySettings()
     {
         Left                 = _settings.Left;
@@ -57,7 +88,7 @@ public partial class MainWindow : Window
         _menuStartup.IsChecked = _settings.RunAtStartup;
     }
 
-    // ── Startup ────────────────────────────────────────────────────────────
+    // ── Startup ──────────────────────────────────────────────────
     private async Task StartAsync()
     {
         _svc.DataReady   += OnDataReady;
@@ -75,27 +106,27 @@ public partial class MainWindow : Window
         _timer.Start();
     }
 
-    // ── Drag overlay ───────────────────────────────────────────────────────
+    // ── Drag overlay ───────────────────────────────────────────────
     private void OnDrag(object sender, MouseButtonEventArgs e)
     {
         if (e.LeftButton == MouseButtonState.Pressed) DragMove();
     }
 
-    // ── Right-click → context menu ─────────────────────────────────────────
+    // ── Right-click → context menu ───────────────────────────────────────
     private void OnRightClick(object sender, MouseButtonEventArgs e)
     {
         _menu.PlacementTarget = this;
         _menu.IsOpen          = true;
     }
 
-    // ── Refresh button ─────────────────────────────────────────────────────
+    // ── Refresh button ───────────────────────────────────────────────
     private void OnRefresh(object sender, RoutedEventArgs e)
     {
         StatusLabel.Text = "Refreshing…";
         _svc.Fetch();
     }
 
-    // ── Expand / collapse ──────────────────────────────────────────────────
+    // ── Expand / collapse ──────────────────────────────────────────
     private void OnToggleExpand(object sender, RoutedEventArgs e)
     {
         bool expanding = ExpandedSection.Visibility != Visibility.Visible;
@@ -103,7 +134,7 @@ public partial class MainWindow : Window
         ExpandBtn.Content          = expanding ? "Show less ▴" : "Show more ▾";
     }
 
-    // ── Opacity slider ─────────────────────────────────────────────────────
+    // ── Opacity slider ───────────────────────────────────────────────
     private void OnOpacityChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         Opacity = e.NewValue;
@@ -116,7 +147,7 @@ public partial class MainWindow : Window
         OpacitySlider.Value = 0.90;
     }
 
-    // ── Startup toggle ─────────────────────────────────────────────────────
+    // ── Startup toggle ─────────────────────────────────────────────
     private void OnToggleStartup(object sender, RoutedEventArgs e)
     {
         bool enable = _menuStartup.IsChecked;
@@ -125,11 +156,11 @@ public partial class MainWindow : Window
         SettingsManager.Save(_settings);
     }
 
-    // ── Exit ───────────────────────────────────────────────────────────────
+    // ── Exit ───────────────────────────────────────────────────────
     private void OnExit(object sender, RoutedEventArgs e)
         => Application.Current.Shutdown();
 
-    // ── Data ready ─────────────────────────────────────────────────────────
+    // ── Data ready ─────────────────────────────────────────────────
     private void OnDataReady(UsageData d)
     {
         Dispatcher.Invoke(() =>
@@ -172,7 +203,7 @@ public partial class MainWindow : Window
     private void OnLoginNeeded()
         => Dispatcher.Invoke(() => StatusLabel.Text = "Sign in → see browser window");
 
-    // ── Save window position on close ──────────────────────────────────────
+    // ── Save window position on close ──────────────────────────────────
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         _settings.Left = Left;
@@ -180,5 +211,6 @@ public partial class MainWindow : Window
         SettingsManager.Save(_settings);
         _svc.Dispose();
         _timer?.Stop();
+        _tray?.Dispose();
     }
 }
