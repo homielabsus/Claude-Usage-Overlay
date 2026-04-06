@@ -1,4 +1,5 @@
 using System.Windows;
+using WpfMessageBox = System.Windows.MessageBox;
 
 namespace ClaudeUsageOverlay;
 
@@ -12,7 +13,7 @@ public partial class App : System.Windows.Application
         _mutex = new Mutex(true, "Global\\ClaudeUsageOverlay_v1", out bool isNew);
         if (!isNew)
         {
-            MessageBox.Show("Claude Usage Overlay is already running.",
+            WpfMessageBox.Show("Claude Usage Overlay is already running.",
                 "Already Running", MessageBoxButton.OK, MessageBoxImage.Information);
             Shutdown();
             return;

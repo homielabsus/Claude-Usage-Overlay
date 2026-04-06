@@ -3,8 +3,10 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
-using WinForms = System.Windows.Forms;
-using Drawing  = System.Drawing;
+using WinForms   = System.Windows.Forms;
+using Drawing    = System.Drawing;
+using WpfApp     = System.Windows.Application;
+using WpfColor   = System.Windows.Media.Color;
 
 namespace ClaudeUsageOverlay;
 
@@ -55,7 +57,7 @@ public partial class MainWindow : Window
     private void InitTray()
     {
         Drawing.Icon icon;
-        var stream = Application.GetResourceStream(
+        var stream = WpfApp.GetResourceStream(
             new Uri("pack://application:,,,/app.ico"))?.Stream;
         icon = stream is not null
             ? new Drawing.Icon(stream)
@@ -64,7 +66,7 @@ public partial class MainWindow : Window
         var trayMenu = new WinForms.ContextMenuStrip();
         trayMenu.Items.Add("🔄  Refresh",        null, (_, _) => { StatusLabel.Text = "Refreshing…"; _svc.Fetch(); });
         trayMenu.Items.Add(new WinForms.ToolStripSeparator());
-        trayMenu.Items.Add("✕  Exit",            null, (_, _) => Application.Current.Shutdown());
+        trayMenu.Items.Add("✕  Exit",            null, (_, _) => WpfApp.Current.Shutdown());
 
         _tray = new WinForms.NotifyIcon
         {
@@ -158,7 +160,7 @@ public partial class MainWindow : Window
 
     // ── Exit ───────────────────────────────────────────────────────
     private void OnExit(object sender, RoutedEventArgs e)
-        => Application.Current.Shutdown();
+        => WpfApp.Current.Shutdown();
 
     // ── Data ready ─────────────────────────────────────────────────
     private void OnDataReady(UsageData d)
@@ -194,10 +196,10 @@ public partial class MainWindow : Window
     private static void ApplyBarColor(System.Windows.Controls.ProgressBar bar, int pct)
     {
         bar.Foreground = pct >= 90
-            ? new SolidColorBrush(Color.FromRgb(0xEF, 0x44, 0x44))  // red
+            ? new SolidColorBrush(WpfColor.FromRgb(0xEF, 0x44, 0x44))  // red
             : pct >= 75
-                ? new SolidColorBrush(Color.FromRgb(0xF5, 0x9E, 0x0B)) // amber
-                : new SolidColorBrush(Color.FromRgb(0x3B, 0x82, 0xF6)); // blue
+                ? new SolidColorBrush(WpfColor.FromRgb(0xF5, 0x9E, 0x0B)) // amber
+                : new SolidColorBrush(WpfColor.FromRgb(0x3B, 0x82, 0xF6)); // blue
     }
 
     private void OnLoginNeeded()
