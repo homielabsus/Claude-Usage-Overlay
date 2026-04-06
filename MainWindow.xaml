@@ -1,0 +1,214 @@
+<Window x:Class="ClaudeUsageOverlay.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Claude Usage"
+        Icon="pack://application:,,,/app.ico"
+        Width="320"
+        SizeToContent="Height"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        MouseLeftButtonDown="OnDrag"
+        TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextFormattingMode="Display"
+        RenderOptions.ClearTypeHint="Enabled"
+        UseLayoutRounding="True">
+
+    <Window.Resources>
+
+        <!-- ── Custom progress bar: rounded track, blue fill, clipped ────────── -->
+        <Style x:Key="UsageBar" TargetType="ProgressBar">
+            <Setter Property="Height"          Value="7"/>
+            <Setter Property="Minimum"         Value="0"/>
+            <Setter Property="Maximum"         Value="100"/>
+            <Setter Property="Foreground"      Value="#3B82F6"/>
+            <Setter Property="Background"      Value="#282828"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Border Height="7" CornerRadius="4"
+                                Background="{TemplateBinding Background}"
+                                ClipToBounds="True">
+                            <Border x:Name="PART_Indicator"
+                                    Background="{TemplateBinding Foreground}"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Stretch"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="UsageBarWarn" TargetType="ProgressBar" BasedOn="{StaticResource UsageBar}">
+            <Setter Property="Foreground" Value="#F59E0B"/>
+        </Style>
+        <Style x:Key="UsageBarCrit" TargetType="ProgressBar" BasedOn="{StaticResource UsageBar}">
+            <Setter Property="Foreground" Value="#EF4444"/>
+        </Style>
+
+        <!-- ── Typography ─────────────────────────────────────────────────── -->
+        <Style x:Key="H" TargetType="TextBlock">
+            <Setter Property="FontSize"   Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#E5E7EB"/>
+        </Style>
+        <Style x:Key="Sub" TargetType="TextBlock">
+            <Setter Property="FontSize"   Value="13"/>
+            <Setter Property="Foreground" Value="#9CA3AF"/>
+        </Style>
+
+    </Window.Resources>
+
+    <Border x:Name="Card"
+            Background="#E81C1C1C"
+            CornerRadius="12"
+            Padding="15,13"
+            MouseRightButtonUp="OnRightClick">
+
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="22"
+                              ShadowDepth="4" Opacity="0.55"/>
+        </Border.Effect>
+
+        <StackPanel>
+
+            <!-- ── Header ────────────────────────────────────────────────── -->
+            <Grid Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="7" Height="7" Fill="#FFB48C"
+                             VerticalAlignment="Center" Margin="0,0,7,0"/>
+                    <TextBlock Text="Claude Usage"
+                               FontSize="15" FontWeight="SemiBold"
+                               Foreground="#F9FAFB" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#3D1F0D" CornerRadius="4"
+                            Padding="5,1" Margin="0,0,5,0">
+                        <TextBlock x:Name="PlanLabel" Text="—"
+                                   FontSize="12" Foreground="#FFB48C"
+                                   FontWeight="Medium"/>
+                    </Border>
+                    <Button Content="↻" Width="21" Height="21"
+                            Background="Transparent" BorderThickness="0"
+                            Foreground="#4B5563" FontSize="14"
+                            Cursor="Hand" VerticalContentAlignment="Center"
+                            Click="OnRefresh" ToolTip="Refresh"/>
+                    <Button Content="✕" Width="21" Height="21"
+                            Background="Transparent" BorderThickness="0"
+                            Foreground="#4B5563" FontSize="12"
+                            Cursor="Hand" VerticalContentAlignment="Center"
+                            Click="OnExit" ToolTip="Close"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Divider -->
+            <Rectangle Height="1" Fill="#252525" Margin="0,0,0,11"/>
+
+            <!-- ── Current session (always visible) ──────────────────── -->
+            <TextBlock Style="{StaticResource H}" Text="Current session" Margin="0,0,0,3"/>
+
+            <Grid Margin="0,0,0,5">
+                <TextBlock x:Name="SessionResetLabel" Style="{StaticResource Sub}"
+                           Text="Resets in —"/>
+                <TextBlock x:Name="SessionPctLabel" Style="{StaticResource Sub}"
+                           Text="—" HorizontalAlignment="Right"/>
+            </Grid>
+
+            <ProgressBar x:Name="SessionBar" Style="{StaticResource UsageBar}"
+                         Value="0" Visibility="Collapsed"/>
+
+            <!-- ── Expand / collapse toggle ─────────────────────────── -->
+            <Button x:Name="ExpandBtn"
+                    Content="Show more ▾"
+                    HorizontalAlignment="Center"
+                    Background="Transparent" BorderThickness="0"
+                    Foreground="#F9FAFB" FontSize="13" FontWeight="SemiBold"
+                    Cursor="Hand" Margin="0,4,0,0"
+                    Click="OnToggleExpand"/>
+
+            <!-- ── Collapsible section ────────────────────────────────── -->
+            <StackPanel x:Name="ExpandedSection" Visibility="Collapsed">
+
+                <!-- Divider -->
+                <Rectangle Height="1" Fill="#252525" Margin="0,10,0,11"/>
+
+                <!-- Weekly limits -->
+                <TextBlock Style="{StaticResource H}" Text="Weekly limits" Margin="0,0,0,9"/>
+
+                <!-- All models -->
+                <Grid Margin="0,0,0,2">
+                    <TextBlock Style="{StaticResource Sub}" Text="All models"
+                               Foreground="#C9CDD4"/>
+                    <TextBlock x:Name="WeeklyAllPctLabel" Style="{StaticResource Sub}"
+                               Text="—" HorizontalAlignment="Right"/>
+                </Grid>
+                <TextBlock x:Name="WeeklyResetLabel" Style="{StaticResource Sub}"
+                           Text="Resets —" Margin="0,0,0,4"/>
+                <ProgressBar x:Name="WeeklyAllBar" Style="{StaticResource UsageBar}"
+                             Value="0" Visibility="Collapsed"/>
+
+                <!-- Sonnet only -->
+                <Grid Margin="0,0,0,2">
+                    <TextBlock Style="{StaticResource Sub}" Text="Sonnet only"
+                               Foreground="#C9CDD4"/>
+                    <TextBlock x:Name="SonnetPctLabel" Style="{StaticResource Sub}"
+                               Text="—" HorizontalAlignment="Right"/>
+                </Grid>
+                <TextBlock x:Name="SonnetResetLabel" Style="{StaticResource Sub}"
+                           Text="Resets —" Margin="0,0,0,4"/>
+                <ProgressBar x:Name="SonnetBar" Style="{StaticResource UsageBar}"
+                             Value="0" Visibility="Collapsed"/>
+
+                <!-- Divider -->
+                <Rectangle Height="1" Fill="#1E1E1E" Margin="0,0,0,9"/>
+
+                <!-- Opacity slider -->
+                <Grid Margin="0,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="○" FontSize="9"
+                               Foreground="#374151" VerticalAlignment="Center"
+                               Margin="0,0,5,0"/>
+                    <Slider x:Name="OpacitySlider" Grid.Column="1"
+                            Minimum="0.15" Maximum="1.0" Value="0.90"
+                            SmallChange="0.05" LargeChange="0.1"
+                            VerticalAlignment="Center"
+                            ValueChanged="OnOpacityChanged"
+                            ToolTip="Overlay opacity"/>
+                    <TextBlock Grid.Column="2" Text="●" FontSize="9"
+                               Foreground="#6B7280" VerticalAlignment="Center"
+                               Margin="5,0,0,0"/>
+                </Grid>
+                <Button Content="Reset to Default"
+                        HorizontalAlignment="Center"
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="#4B5563" FontSize="11"
+                        Cursor="Hand" Margin="0,5,0,0"
+                        Click="OnResetOpacity"/>
+
+            </StackPanel>
+
+            <!-- Status / last updated -->
+            <TextBlock x:Name="StatusLabel"
+                       Text="Loading…"
+                       FontSize="11" Foreground="#374151"
+                       HorizontalAlignment="Center"
+                       Margin="0,7,0,0"/>
+
+        </StackPanel>
+    </Border>
+
+</Window>
