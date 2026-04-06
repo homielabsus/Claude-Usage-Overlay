@@ -64,7 +64,7 @@ echo   %~dp0dist\ClaudeUsage.exe
 echo  ════════════════════════════════════════════
 echo.
 echo  First run: a login window will open — sign in once.
-echo  After that the overlay auto-refreshes every 5 min.
+echo  After that the overlay auto-refreshes every 1 min.
 echo.
 explorer "%~dp0dist"
 pause
