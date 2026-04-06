@@ -103,6 +103,11 @@
                             Foreground="#4B5563" FontSize="14"
                             Cursor="Hand" VerticalContentAlignment="Center"
                             Click="OnRefresh" ToolTip="Refresh"/>
+                    <Button Content="—" Width="21" Height="21"
+                            Background="Transparent" BorderThickness="0"
+                            Foreground="#4B5563" FontSize="12"
+                            Cursor="Hand" VerticalContentAlignment="Center"
+                            Click="OnMinimize" ToolTip="Minimize to tray"/>
                     <Button Content="✕" Width="21" Height="21"
                             Background="Transparent" BorderThickness="0"
                             Foreground="#4B5563" FontSize="12"

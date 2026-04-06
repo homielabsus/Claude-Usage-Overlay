@@ -64,6 +64,7 @@ public partial class MainWindow : Window
             : Drawing.SystemIcons.Application;
 
         var trayMenu = new WinForms.ContextMenuStrip();
+        trayMenu.Items.Add("Show",               null, (_, _) => Dispatcher.Invoke(() => { Show(); Activate(); }));
         trayMenu.Items.Add("🔄  Refresh",        null, (_, _) => { StatusLabel.Text = "Refreshing…"; _svc.Fetch(); });
         trayMenu.Items.Add(new WinForms.ToolStripSeparator());
         trayMenu.Items.Add("✕  Exit",            null, (_, _) => WpfApp.Current.Shutdown());
@@ -157,6 +158,9 @@ public partial class MainWindow : Window
         _settings.RunAtStartup = enable;
         SettingsManager.Save(_settings);
     }
+
+    // ── Minimize to tray ───────────────────────────────────────────
+    private void OnMinimize(object sender, RoutedEventArgs e) => Hide();
 
     // ── Exit ───────────────────────────────────────────────────────
     private void OnExit(object sender, RoutedEventArgs e)
