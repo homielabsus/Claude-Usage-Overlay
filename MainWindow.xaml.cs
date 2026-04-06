@@ -127,6 +127,8 @@ public partial class MainWindow : Window
     {
         StatusLabel.Text = "Refreshing…";
         _svc.Fetch();
+        _timer?.Stop();
+        _timer?.Start();
     }
 
     // ── Expand / collapse ──────────────────────────────────────────
