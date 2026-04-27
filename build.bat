@@ -23,6 +23,12 @@ echo.
 
 cd /d "%~dp0"
 
+REM ── Generate version vYY.MM.DD.HHMM ───────────────────────────────────────
+for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value 2^>nul') do set DT=%%I
+set VER=%DT:~2,2%.%DT:~4,2%.%DT:~6,2%.%DT:~8,4%
+echo  Version: v%VER%
+echo.
+
 REM ── Restore packages ───────────────────────────────────────────────────────
 echo  [1/2] Restoring packages...
 dotnet restore ClaudeUsageOverlay.csproj --nologo -v q
@@ -46,6 +52,9 @@ dotnet publish ClaudeUsageOverlay.csproj ^
     -p:EnableCompressionInSingleFile=true ^
     -p:DebugType=embedded ^
     -p:DebugSymbols=false ^
+    -p:Version=%VER% ^
+    -p:FileVersion=%VER% ^
+    -p:AssemblyVersion=%VER% ^
     -o "%~dp0dist"
 
 if errorlevel 1 (
